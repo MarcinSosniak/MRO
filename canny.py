@@ -149,22 +149,24 @@ def non_maximum_supprestion_and_normalization(gradient_map,shape):
             out_array[i][j]=0
             if direc==GradDir.NULL_STATE:
                 continue
-
-            if direc==GradDir.VER:
-                if not ((i>0 and gradient_map[i-1][j].grad() > grad ) or ( i<shape[0] -1 and gradient_map[i+1][j].grad() > grad)):
-                    out_array[i][j]=grad
-            if direc == GradDir.R_UP:
-                if not ((i > 0 and j < shape[1]-1 and gradient_map[i - 1][j+1].grad() > grad) or (
-                        i < shape[0] -1 and j>0 and gradient_map[i + 1][j-1].grad() > grad)):
-                    out_array[i][j] = grad
-            if direc == GradDir.R_DOWN:
-                if not ((i > 0 and j>0  and gradient_map[i - 1][j-1].grad() > grad) or (
-                        i < shape[0] -1 and j < shape[1] -1 and gradient_map[i + 1][j+1].grad() > grad)):
-                    out_array[i][j] = grad
-            if direc == GradDir.RIGHT:
-                if not ((j > 0 and gradient_map[i][j-1].grad() > grad) or (
-                        j < shape[0] -1 and gradient_map[i][j+1].grad() > grad)):
-                    out_array[i][j] = grad
+            try:
+                if direc==GradDir.VER:
+                    if not ((i>0 and gradient_map[i-1][j].grad() > grad ) or ( i<shape[0] -1 and gradient_map[i+1][j].grad() > grad)):
+                        out_array[i][j]=grad
+                if direc == GradDir.R_UP:
+                    if not ((i > 0 and j < shape[1]-1 and gradient_map[i - 1][j+1].grad() > grad) or (
+                            i < shape[0] -1 and j>0 and gradient_map[i + 1][j-1].grad() > grad)):
+                        out_array[i][j] = grad
+                if direc == GradDir.R_DOWN:
+                    if not ((i > 0 and j>0  and gradient_map[i - 1][j-1].grad() > grad) or (
+                            i < shape[0] -1 and j < shape[1] -1 and gradient_map[i + 1][j+1].grad() > grad)):
+                        out_array[i][j] = grad
+                if direc == GradDir.RIGHT:
+                    if not ((j > 0 and gradient_map[i][j-1].grad() > grad) or (
+                            j < shape[0] -1 and gradient_map[i][j+1].grad() > grad)):
+                        out_array[i][j] = grad
+            except:
+                pass
     max_val=0.
     for i in range(shape[0]):
         for j in range(shape[1]):
@@ -197,28 +199,70 @@ def max_out(image):
     hue = np.zeros(image.shape,dtype="uint8")
     for i in range(image.shape[0]):
         for j in range(image.shape[1]):
-            if hue[i][j] > 0:
+            if image[i][j]> 0:
                 hue[i][j]=255
+    return hue
 
 
 
-if __name__=="__main__":
-    img = Image.open("ellington-1965-15-2.png", "r")
-    img_a= np.array(img)
+def canny(image,top_treshold,lower_threshold, kernel_size=2):
+    kern = get_gausian_kernel(kernel_size)
+    cpy = apply_gaussian_kernel(image, kern, kernel_size)
+    after_kernel = normalise(cpy)
+    grad_map, shape_ = gradient_map(after_kernel)
+
+    # hue = np.array(list(map(lambda x: list(map(lambda y: y.grad(), x)), grad_map)))
+    # display(hue)
+
+    after_non_max = non_maximum_supprestion_and_normalization(grad_map, shape_)
+    after_d_t = double_treshold(after_non_max, top_treshold, lower_threshold)
+    after_max_out = max_out(after_d_t)
+    return after_max_out
+
+def apply_kern(image, kernel_size):
+    kern = get_gausian_kernel(kernel_size)
+    cpy = apply_gaussian_kernel(image, kern, kernel_size)
+    after_kernel = normalise(cpy)
+    return  after_kernel
+
+def open_img_as_np_arr_bw(path):
+    img = Image.open(path, "r")
+    img_a = np.array(img)
     # plt.imshow(img_a)
     # plt.show()
-    new_img_a= img_a[:,:,1]
+    return img_a[:, :, 1]
+
+
+def main():
+    # img = Image.open("ellington-1965-15-2.png", "r")
+    img = Image.open("kotek.png", "r")
+    img_a = np.array(img)
+    # plt.imshow(img_a)
+    # plt.show()
+    new_img_a = img_a[:, :, 1]
     # plt.imshow(new_img_a, cmap='gray')
     # plt.show()
     kern = get_gausian_kernel(1)
-    cpy= apply_gaussian_kernel(new_img_a,kern,1)
-    final=  normalise(cpy)
+    cpy = apply_gaussian_kernel(new_img_a, kern, 1)
+    final = normalise(cpy)
     # plt.imshow(final, cmap='gray')
     # plt.show()
-    grad_map,shape_ =gradient_map(final)
-    hue = np.array(list(map(lambda x : list(map(lambda y : y.grad(),x)) ,grad_map)))
+    grad_map, shape_ = gradient_map(final)
+    hue = np.array(list(map(lambda x: list(map(lambda y: y.grad(), x)), grad_map)))
     # display(hue)
-    after_non_max= non_maximum_supprestion_and_normalization(grad_map,shape_)
+    after_non_max = non_maximum_supprestion_and_normalization(grad_map, shape_)
     display(after_non_max)
-    after_d_t= double_treshold(after_non_max,140,100)
-    display(after_d_t)
+    after_d_t = double_treshold(after_non_max, 50, 30)
+    after_max_out = max_out(after_d_t)
+    display(after_max_out)
+    pass
+
+def main2():
+    new_img_a = open_img_as_np_arr_bw("shapes_in/shapes.png")
+    # display(new_img_a)
+    canny_out= canny(new_img_a,15,15)
+    display(canny_out)
+
+
+if __name__=="__main__":
+    main2()
